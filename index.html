@@ -102,6 +102,14 @@ input[type=email]{font:inherit;color:var(--ink);background:var(--bg);border:1px 
 .status{flex:1;min-width:170px;font-size:.85rem;color:var(--muted)}
 .status.err{color:var(--bad)} .status.ok{color:var(--good)}
 @media (prefers-reduced-motion:no-preference){.stage,.chip span,button,.oc{transition:background .15s,border-color .15s}}
+.combo{position:relative;min-width:0}
+.combo ul{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;margin:0;padding:4px;list-style:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);max-height:260px;overflow-y:auto}
+.combo li{display:grid;gap:1px;padding:8px 10px;border-radius:6px;cursor:pointer;font-weight:400}
+.combo li b{font-weight:600;font-size:.95rem}
+.combo li small{color:var(--muted);font-size:.78rem}
+.combo li mark{background:var(--accent-soft);color:inherit;border-radius:2px}
+.combo li[aria-selected="true"]{background:var(--accent-soft)}
+.combo li.none{cursor:default;color:var(--muted);font-size:.85rem}
 </style>
 
 <div class="wrap">
@@ -132,7 +140,7 @@ input[type=email]{font:inherit;color:var(--ink);background:var(--bg);border:1px 
     <div class="grid2">
       <label class="f">Review type<span class="h">Probation for new starters, termly for everyone else</span><select id="kind"><option value="probation">Probation review</option><option value="performance">Termly performance review</option></select></label>
       <label class="f">Job title<span class="h">Switches the checklist in section 2</span><select id="role"><option>Administrator</option><option>Lead Administrator</option></select></label>
-      <label class="f">Employee name<input type="text" id="empName" autocomplete="off"></label>
+      <label class="f">Employee name<span class="h">Start typing to pick from the Staff Database</span><div class="combo"><input type="text" id="empName" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="empName-list"><ul id="empName-list" role="listbox" hidden></ul></div></label>
       <label class="f">Branch<select id="branch"><option value="">Choose branch</option><option>Edmonton</option><option>Enfield</option><option>Finchley</option><option>Harlow</option><option>Slough</option><option>Head office</option></select></label>
       <label class="f">Reviewer (line manager)<input type="text" id="reviewer"></label>
       <label class="f">Start date<input type="date" id="startDate"></label>
@@ -613,7 +621,42 @@ document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=()=>{ const el=$(b
   const fallback=()=>{ el.removeAttribute("readonly"); el.focus(); el.select(); el.setSelectionRange(0,txt.length); try{ document.execCommand("copy"); done(); }catch(e){ setStatus("Text selected. Press copy on your keyboard or phone.","ok"); } if(el.id==="mailSubject") el.setAttribute("readonly",""); };
   try{ navigator.clipboard.writeText(txt).then(done,fallback); }catch(e){ fallback(); } });
 
-function boot(){ AREAS=pickAreas(); bindFields(); renderKind(); renderMail(); renderDates(); renderAreas(); renderScores(); renderObjs(); renderStage(); resetUI(); pads.sigMgr.size(); pads.sigEmp.size(); }
+/* admin staff: current Admin and Lead Admin staff from Staff Database > Employment Records (pulled 14 November 2026) */
+const STAFF = [{"n":"Dahyim Karim","p":"Br","b":"Enfield","r":"Lead Admin","s":"2020-09-05"},{"n":"Hamida Hussain","p":"Sr","b":"Finchley","r":"Admin","s":"2022-10-01"},{"n":"Kaif Hassan","p":"Br","b":"Edmonton","r":"Lead Admin","s":"2016-09-01"},{"n":"Kavid Karim","p":"Br","b":"Edmonton","r":"Admin","s":"2022-11-27"},{"n":"Mustafa Shire","p":"Br","b":"Enfield","r":"Admin","s":"2026-09-05"},{"n":"Nageena Shujat Ali","p":"Sr","b":"Harlow","r":"Lead Admin","s":"2019-09-08"},{"n":"Omer Samdani","p":"Br","b":"Finchley","r":"Lead Admin","s":"2016-01-15"},{"n":"Raed Eifan","p":"Br","b":"Enfield","r":"Admin","s":"2025-03-22"},{"n":"Riyad Islam","p":"Br","b":"Edmonton","r":"Admin","s":"2021-09-04"},{"n":"Zaki Iqbal","p":"Br","b":"Harlow","r":"Admin","s":"2026-05-17"}];
+const ROLE_LABEL={"Admin":"Administrator","Lead Admin":"Lead Administrator"};
+function matches(item,q){ const words=item.n.toLowerCase().split(/[\s-]+/); return q.toLowerCase().split(/\s+/).filter(Boolean).every(t=>words.some(w=>w.startsWith(t))); }
+function hi(name,q){ const toks=q.toLowerCase().split(/\s+/).filter(Boolean); return name.split(/(\s+)/).map(w=>{ const t=toks.find(t=>w.toLowerCase().startsWith(t)); return t?`<mark>${esc(w.slice(0,t.length))}</mark>${esc(w.slice(t.length))}`:esc(w); }).join(""); }
+const combos={};
+function setupCombo(id,onPick){
+  if(combos[id]) return; const inp=$(id), list=$(id+"-list"); let items=[], act=-1;
+  const close=()=>{ list.hidden=true; inp.setAttribute("aria-expanded","false"); inp.removeAttribute("aria-activedescendant"); act=-1; };
+  const paint=()=>{ list.querySelectorAll("li[data-i]").forEach((li,i)=>{ li.setAttribute("aria-selected",i===act); if(i===act){ inp.setAttribute("aria-activedescendant",li.id); li.scrollIntoView({block:"nearest"}); } }); };
+  const open=()=>{ const q=inp.value.trim(); if(!q){ close(); return; }
+    items=STAFF.filter(x=>matches(x,q)).slice(0,8);
+    list.innerHTML = items.length ? items.map((x,i)=>`<li role="option" id="${id}-o${i}" data-i="${i}"><b>${hi(x.n,q)}</b><small>${esc([ROLE_LABEL[x.r]||x.r,x.b].filter(Boolean).join(" · "))}</small></li>`).join("")
+      : `<li class="none">No admin staff by that name in the Staff Database. You can still type the name.</li>`;
+    list.hidden=false; inp.setAttribute("aria-expanded","true"); act=items.length?0:-1; paint(); };
+  const pick=i=>{ const x=items[i]; if(!x) return; inp.value=x.n; inp.dispatchEvent(new Event("input")); close(); onPick&&onPick(x); };
+  inp.addEventListener("input",e=>{ if(e.isTrusted) open(); });
+  inp.addEventListener("focus",open);
+  inp.addEventListener("keydown",e=>{ if(list.hidden) return;
+    if(e.key==="ArrowDown"){ e.preventDefault(); act=Math.min(items.length-1,act+1); paint(); }
+    else if(e.key==="ArrowUp"){ e.preventDefault(); act=Math.max(0,act-1); paint(); }
+    else if(e.key==="Enter"&&act>=0){ e.preventDefault(); pick(act); }
+    else if(e.key==="Escape"){ close(); } });
+  inp.addEventListener("blur",()=>setTimeout(close,120));
+  list.addEventListener("mousedown",e=>e.preventDefault());
+  list.addEventListener("click",e=>{ const li=e.target.closest("li[data-i]"); if(li) pick(+li.dataset.i); });
+  combos[id]=true;
+}
+function fillFrom(x){ const done=[];
+  const put=(f,v)=>{ if(!v) return; S[f]=v; $(f).value=v; };
+  if(x.b){ put("branch",x.b); done.push("branch"); }
+  const role=ROLE_LABEL[x.r]; if(role){ put("role",role); AREAS=pickAreas(); renderAreas(); renderScores(); done.push("job title"); }
+  if(x.s){ put("startDate",x.s); done.push("start date"); S.autoEnd=addWeeks(x.s,12); put("endDate",S.autoEnd); }
+  save(); renderDates(); renderWarn();
+  if(done.length) setStatus(`Filled in ${done.join(", ").replace(/, ([^,]*)$/," and $1")} from the Staff Database. Check they're right.`,"ok"); }
+function boot(){ AREAS=pickAreas(); bindFields(); renderKind(); renderMail(); renderDates(); renderAreas(); renderScores(); renderObjs(); renderStage(); resetUI(); setupCombo("empName",fillFrom); pads.sigMgr.size(); pads.sigEmp.size(); }
 const d=load(); if(d){ S=Object.assign(fresh(),d); }
 boot(); if(d) setStatus("Picked up your review where you left off.","ok");
 })();
