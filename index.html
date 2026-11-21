@@ -155,6 +155,7 @@ input[type=email]{font:inherit;color:var(--ink);background:var(--bg);border:1px 
     <h2 id="h2d"><span class="n">2</span>Handbook standards</h2>
     <p class="small" id="roleLabel" style="font-weight:600"></p>
     <p class="muted small">Rate each standard from what you have seen. Use "Not yet seen" if the task has not come up yet, and "N/A" if it doesn't apply to this person or branch. Neither counts towards the score. Anything "Partly" or "Not met" needs a note and an objective in section 4.</p>
+    <p class="muted small"><b>Before rating:</b> open the branch's Admin Observations doc and read the entries since the start date or last review. Use advisories as evidence for "Partly" or "Not met", Good Practise entries for key strengths, and note the item numbers. Standards marked "From branch observations" come from problems that keep coming up there.</p>
     <div id="areas" style="display:grid;gap:18px"></div>
   </section>
 
@@ -173,6 +174,7 @@ input[type=email]{font:inherit;color:var(--ink);background:var(--bg);border:1px 
     <p class="muted small">Specific and measurable, each with a date. At the next review, record progress.</p>
     <div id="objs" style="display:grid;gap:10px"></div>
     <div><button type="button" id="addObj">Add objective</button></div>
+    <details class="small" id="exObjBox"><summary style="cursor:pointer;font-weight:600">Example objectives (tap one to add it)</summary><div id="exObjs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div></details>
     <label class="f">Training completed so far<span class="h">INSET days, admin briefings, branch swaps</span><textarea id="training"></textarea></label>
     <label class="f">Support or adjustments needed<textarea id="support"></textarea></label>
   </section>
@@ -243,14 +245,17 @@ const ADMIN_AREAS = [
  {id:"work", t:"Workflow and Admin Actions Log", items:[
   ["Completes all tasks the Lead Admin delegates in the Admin Actions Log on time","Team structure"],
   ["Gives regular updates to the Lead Admin and keeps to the workflow set","Team structure"],
-  ["Asks for help early instead of letting tasks slip","Team structure"]]},
+  ["Asks for help early instead of letting tasks slip","Team structure"],
+  ["Marks tasks Complete on the Admin Task Tracker on the day they are done","Branch observations"],
+  ["Replies to observation doc advisories and updates their status by the following weekend","Branch observations"]]},
  {id:"email", t:"Emails", items:[
   ["Leaves mass emails to the Lead Admin; never CCs more than one parent","Managing emails"],
   ["Opens with the salaam, closes with Jazakallahu khairan and the right signature","Managing emails"],
   ["Subject lines follow the format: capitalised words, | or * separators, no full stops or commas","Managing emails"],
   ["Flags and labels emails correctly; teaching and learning queries labelled Heads","Managing emails"],
   ["Replies the same day in branch hours, never later than 6 days, never sends after 7 pm","Managing emails"],
-  ["Helps the Lead Admin reach zero inbox by 1 pm every Sunday","KPIs"]]},
+  ["Helps the Lead Admin reach zero inbox by 1 pm every Sunday","KPIs"],
+  ["Has every email to parents checked by a second person before sending: dates, red template fields, font set to Normal","Branch observations"]]},
  {id:"phone", t:"Phone, voicemail and parent channels", items:[
   ["Answers with the set greeting and returns missed calls","Phone calls"],
   ["Checks voicemail daily and at weekends, replying the same day","Phone calls"],
@@ -259,17 +264,25 @@ const ADMIN_AREAS = [
  {id:"reg", t:"Registers and timesheets", items:[
   ["Quran registers and trackers 100% complete by the end of the Quran lesson; gaps chased the same day","KPIs"],
   ["Timesheet: staff and visitors sign in, early leavers sign out, no backdating","KPIs"],
-  ["Monthly timesheet data emailed to payroll on the first Saturday","KPIs"]]},
+  ["Monthly timesheet data emailed to payroll on the first Saturday","KPIs"],
+  ["Checks staff sign-ins weekly; holidays, part-time days and leavers marked NA, not Absent","Branch observations"],
+  ["Monthly staff attendance reports sent on time, with the dates and year checked before sending","Branch observations"],
+  ["Runs the Student Gap Finder so every student is on a Quran tracker; never sorts, inserts or deletes rows, or types over grey formula columns","Branch observations"]]},
  {id:"fin", t:"Fees and finance", items:[
   ["Charges the correct amounts: £85 admin fee, £50 advance, £5 books, £15 bags","Fees"],
   ["Logs missed payments after each GoCardless run and records card payments with receipts","Failed payments"],
   ["Finance section of the Admin File complete by the second week of the month","KPIs"],
-  ["Passes refund and discount requests to the Lead Admin; never agrees them alone","Refunds, discounts"]]},
+  ["Passes refund and discount requests to the Lead Admin; never agrees them alone","Refunds, discounts"],
+  ["Uploads Pleo receipts every month and checks every Pleo transaction is on the Finance Report; months with no spend show 0","Branch observations"],
+  ["Cash Log uses only the set categories and leaves out GoCardless income; unpaid items chased until collected","Branch observations"],
+  ["Takes payments by card or SumUp link only; no cash","Branch observations"]]},
  {id:"rec", t:"Admissions and student records", items:[
   ["Copies waiting-list students to the Comms Launchpad and moves them through each stage","Admissions"],
   ["Prioritises internal transfers and siblings; no admin fee or new books for transfers","Transfers"],
   ["Keeps J2J classes and student records up to date","J2J"],
-  ["Processes leavers with 4 weeks' notice and the Student Leavers Form","Leavers"]]},
+  ["Processes leavers with 4 weeks' notice and the Student Leavers Form","Leavers"],
+  ["Parent contact details complete in Family Records, with a note on every gap chased","Branch observations"],
+  ["Logs every bag and book handed out on the Inventory Manager the same day","Branch observations"]]},
  {id:"sec", t:"Data protection and IT security", items:[
   ["Keeps passwords and logins private and stored only in the agreed places","IT security"],
   ["Shares bank and donation details only through official channels","Donations"],
@@ -284,7 +297,8 @@ const LEAD_AREAS = [
   ["Plans the week from the Admin Actions Log and delegates tasks with clear deadlines","Team structure"],
   ["Makes sure every item on the tracker is completed and ticked off by the end of the week","Admin Actions Log"],
   ["Supervises and supports the Administrator; follows up missed tasks the same week","Team structure"],
-  ["Keeps the Branch Amir and Operations & Finance Manager updated; escalates problems early","Team structure"]]},
+  ["Keeps the Branch Amir and Operations & Finance Manager updated; escalates problems early","Team structure"],
+  ["Replies to every observation doc advisory and updates its status by the following weekend; nothing left Not started","Branch observations"]]},
  {id:"Lcom", t:"Branch communications", items:[
   ["Sends all mass emails to parents using BCC; no parent addresses exposed","Managing emails"],
   ["Manages replies to all branch emails: same day in branch hours, never later than 6 days, never after 7 pm","Managing emails"],
@@ -292,32 +306,43 @@ const LEAD_AREAS = [
   ["Every email follows house style: salaam, Jazakallahu khairan, signature, subject format, flags and Heads label","Managing emails"],
   ["Uses Text Local only for urgent group messages, with the set template","Text Local SMS"],
   ["Telegram homework posts at least every two weeks with Amir visibility; contacts kept up to date","Telegram"],
-  ["Voicemail greeting kept current for the term or event; missed calls returned","Phone calls"]]},
+  ["Voicemail greeting kept current for the term or event; missed calls returned","Phone calls"],
+  ["Every mass email checked by a second person before sending (dates, red template fields, font Normal), with management BCC'd","Branch observations"]]},
  {id:"Lrec", t:"Records and branch files", items:[
   ["Student record database accurate and up to date","Team structure"],
   ["Admin File, Class Management, Progress Records and Comms Launchpad maintained","Team structure"],
   ["Organises data collection from teachers and parents","Team structure"],
   ["Runs new student intake: waiting-list stages, Induction Packs for gap-fillers, 15:1 ratio","Admissions"],
   ["Handles transfers and leavers correctly: priority transfers, 4 weeks' notice, Leavers Form","Transfers, Leavers"],
-  ["J2J classes assigned, new students added, cover account passwords held securely","J2J"]]},
+  ["J2J classes assigned, new students added, cover account passwords held securely","J2J"],
+  ["Family Records contact details complete, with notes on gaps chased","Branch observations"],
+  ["Teachers' term report data (Quran and Memo levels) checked complete before the branch closes","Branch observations"]]},
  {id:"Lkpi", t:"KPIs: registers, finance and timesheets", items:[
   ["Quran registers 100% complete by the end of the lesson; gaps chased with teachers and Amirs the same day","KPIs"],
   ["Finance section of the Admin File complete by the second week of each month","KPIs"],
   ["Missed payments updated after each GoCardless run; failed payments retried in the same month","KPIs, GoCardless"],
-  ["Monthly timesheet data to payroll on the first Saturday; no backdating","KPIs"]]},
+  ["Monthly timesheet data to payroll on the first Saturday; no backdating","KPIs"],
+  ["Pleo receipts uploaded monthly and every Pleo transaction on the Finance Report; months with no spend show 0","Branch observations"],
+  ["Staff sign-ins checked weekly with holidays, part-time days and leavers marked NA; monthly attendance reports sent and checked","Branch observations"],
+  ["Student Gap Finder run so every student is on a Quran tracker; registers never sorted and formula columns never overwritten","Branch observations"]]},
  {id:"Lfin", t:"Fees, refunds and budgets", items:[
   ["Correct fees charged: £85 admin fee, £50 advance, £5 books, £15 bags; receipts issued","Fees"],
   ["Refunds assessed with the Head of branch, processed through GoCardless or SumUp and logged","Refunds"],
   ["Discounts kept within policy: Amirs up to 30%, above that to Management; staff 30%","Discounts"],
   ["Branch budgets spent within limits with no overspend; Pleo card kept secure","Budgets, Pleo"],
-  ["Staff expense invoices: one per budget, copy saved on the branch drive, sent to payroll","Staff expenses"]]},
+  ["Staff expense invoices: one per budget, copy saved on the branch drive, sent to payroll","Staff expenses"],
+  ["Cash Log kept to the set categories with no GoCardless income; unpaid items chased until collected","Branch observations"],
+  ["Cashless policy kept: card or SumUp link only, including for Amir-run activities and events","Branch observations"],
+  ["Direct debits for the new year's fees set up by 10 September","Branch observations"]]},
  {id:"Lops", t:"Resources, safeguarding and systems", items:[
   ["Books ordered before the first day back using the branch coupon","Book orders"],
   ["Inventory of resource books and bags kept up to date","Team structure"],
   ["Medical bags and student medicines checked and in date","Team structure"],
   ["DBS applications reviewed on CareCheck for all staff and volunteers aged 16+","DBS"],
   ["Passwords updated yearly for all branch systems; leavers' access removed","IT security"],
-  ["Branch handset, SumUp reader and donation details used only as the handbook allows","Phones, SumUp, Donations"]]},
+  ["Branch handset, SumUp reader and donation details used only as the handbook allows","Phones, SumUp, Donations"],
+  ["Book order quantities checked against the invoice and the Books orders log","Branch observations"],
+  ["Bags and books logged on the Inventory Manager the day they are handed out","Branch observations"]]},
  {id:"Ldev", t:"Training and leadership", items:[
   ["Attends INSET days and admin briefings; one admin attends head-office training each term","Training"],
   ["Branch swaps planned for self and the Administrator (2 branches a year)","Training"],
@@ -406,8 +431,8 @@ function renderAreas(){
     ? "Lead Administrator checklist: delegation, the task tracker, branch comms, records, finance and safeguarding."
     : "Administrator checklist: delegated tasks, emails and calls, registers, payments and records.";
   $("areas").innerHTML=AREAS.map(a=>`<div class="area" data-a="${a.id}"><div class="areaHead"><h3>${esc(a.t)}</h3><span data-pill>${pillFor(areaStat(a))}</span></div>
-   ${a.items.map(([txt,src],i)=>{ const k=a.id+"."+i; return `<div class="check"><p>${esc(txt)}</p><span class="src">Handbook: ${esc(src)}</span>${chipGroup("r-"+k,S.ratings[k])}</div>`; }).join("")}
-   <label class="f" style="font-weight:400"><textarea data-note="${a.id}" placeholder="Evidence and examples (dates, what you saw)">${esc(S.notes[a.id])}</textarea></label></div>`).join("");
+   ${a.items.map(([txt,src],i)=>{ const k=a.id+"."+i; return `<div class="check"><p>${esc(txt)}</p><span class="src">${src==="Branch observations"?"From branch observations":"Handbook: "+esc(src)}</span>${chipGroup("r-"+k,S.ratings[k])}</div>`; }).join("")}
+   <label class="f" style="font-weight:400"><textarea data-note="${a.id}" placeholder="Evidence and examples (dates, what you saw, observation doc item numbers)">${esc(S.notes[a.id])}</textarea></label></div>`).join("");
   $("areas").querySelectorAll("input[type=radio]").forEach(r=>r.onchange=()=>{ const k=r.name.slice(2); S.ratings[k]=r.value; save();
     const a=AREAS.find(x=>x.id===k.split(".")[0]); r.closest(".area").querySelector("[data-pill]").innerHTML=pillFor(areaStat(a)); renderScores(); });
   $("areas").querySelectorAll("[data-note]").forEach(t=>t.oninput=()=>{ S.notes[t.dataset.note]=t.value; save(); });
@@ -434,6 +459,16 @@ function renderObjs(){
     const rm=el.querySelector("[data-rm]"); if(rm) rm.onclick=()=>{ S.objs=S.objs.filter(x=>x!==o); save(); renderObjs(); }; });
 }
 $("addObj").onclick=()=>{ S.objs.push({id:uid(),what:"",support:"",due:"",progress:""}); save(); renderObjs(); };
+const EX_OBJS=[
+ "No missing Pleo receipts at the end of each month, and every transaction on the Finance Report, for 3 months in a row",
+ "Staff attendance reports sent by the first Saturday of each month, checked before sending, for a full term",
+ "Every email to parents checked by a second person before sending, with no corrections needed afterwards, for 8 weeks",
+ "Student Gap Finder shows zero gaps every Sunday for 4 weeks in a row",
+ "Every observation doc advisory answered and its status updated within a week, for a full term",
+ "Every bag and book handed out logged on the Inventory Manager the same day, checked at each spot check"];
+$("exObjs").innerHTML=EX_OBJS.map((t,i)=>`<button type="button" class="sm ghost" data-ex="${i}" style="text-align:left;font-weight:400">${esc(t)}</button>`).join("");
+$("exObjs").querySelectorAll("[data-ex]").forEach(b=>b.onclick=()=>{ const t=EX_OBJS[+b.dataset.ex]; const empty=S.objs.find(o=>!o.what.trim());
+  if(empty) empty.what=t; else S.objs.push({id:uid(),what:t,support:"",due:"",progress:""}); save(); renderObjs(); setStatus("Objective added. Set a target date and support.","ok"); });
 
 /* stage + outcome */
 function renderStage(){
@@ -563,12 +598,12 @@ $("makePdf").onclick=async()=>{
   if(!window.jspdf){ setStatus("The PDF tool didn't load. Check your connection and reload.","err"); return; }
   const miss=[]; if(!S.empName.trim()) miss.push("employee name"); if(!S.reviewer.trim()) miss.push("reviewer");
   if(miss.length){ setStatus(`Add the ${miss.join(" and ")} in section 1 first.`,"err"); $(S.empName.trim()?"reviewer":"empName").focus(); return; }
-  if(!downloads){ setStatus("Downloads aren't available in this view. Open the page on claude.ai in a browser or the Claude app.","err"); return; }
   const btn=$("makePdf"); btn.disabled=true; setStatus("Building the PDF…");
   try{
-    const blob=buildPdf().output("blob");
+    const pdf=buildPdf();
     const fname=`${S.kind==="probation"?"Probation":"Performance"}-Review_${S.empName.trim().replace(/[^\w\- ]+/g,"").replace(/\s+/g,"-")}_${S.stage}_${S.reviewDate||today()}.pdf`;
-    await downloads.save({filename:fname,data:blob});
+    if(downloads) await downloads.save({filename:fname,data:pdf.output("blob")});
+    else pdf.save(fname);
     setStatus(`Saved ${fname}. Email it to ${S.empName.split(" ")[0]} and keep a copy in their staff file.`,"ok");
   }catch(e){ const c=e&&e.code;
     if(c==="declined") setStatus("Download cancelled. Tap the button again when ready.");
