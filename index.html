@@ -590,7 +590,7 @@ function buildPdf(){
   y+=42; para("The employee's signature confirms the meeting took place and they have received a copy. It does not mean they agree with every rating; their comments are recorded above.",8.5,C.muted,false);
 
   const n=doc.getNumberOfPages();
-  for(let i=1;i<=n;i++){ doc.setPage(i); font(7.5,false); tc(C.muted); doc.text(`Safar Academy · ${S.kind==="probation"?"Probation":"Performance"} review ·${S.empName||""} · ${fmt(S.reviewDate)}`,M,H-8); doc.text(`Page ${i} of ${n}`,W-M,H-8,{align:"right"}); }
+  for(let i=1;i<=n;i++){ doc.setPage(i); font(7.5,false); tc(C.muted); doc.text(`Safar Academy · ${S.kind==="probation"?"Probation":"Performance"} review · ${S.empName||""} · ${fmt(S.reviewDate)}`,M,H-8); doc.text(`Page ${i} of ${n}`,W-M,H-8,{align:"right"}); }
   return doc;
 }
 let downloads=null;
